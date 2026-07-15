@@ -1,12 +1,14 @@
 package com.nuxnamdeep
 
-import android.Manifest
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.media.midi.MidiDevice
-import android.media.midi.MidiDeviceInfo
-import android.media.midi.MidiManager
-import android.media.midi.MidiOutputPort
+import android.hardware.usb.UsbConstants
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -27,11 +29,24 @@ import java.io.File
 class MainActivity : AppCompatActivity() {
 
     // ============================================
-    // MIDI
+    // USB (copiado de tu proyecto)
     // ============================================
-    private lateinit var midiManager: MidiManager
-    private var midiDevice: MidiDevice? = null
-    private var midiOutputPort: MidiOutputPort? = null
+    private lateinit var usbManager: UsbManager
+    private var connection: android.hardware.usb.UsbDeviceConnection? = null
+    private var endpointOut: android.hardware.usb.UsbEndpoint? = null
+
+    private val ACTION_USB_PERMISSION = "com.nuxnamdeep.USB_PERMISSION"
+
+    private val permissionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (ACTION_USB_PERMISSION == intent.action) {
+                val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    device?.let { connectToDevice(it) }
+                }
+            }
+        }
+    }
 
     // ============================================
     // UI
@@ -64,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         setupViews()
-        setupMIDI()
+        setupUSB()
         checkPermissions()
         handleIncomingFile()
     }
@@ -88,6 +103,70 @@ class MainActivity : AppCompatActivity() {
         btnConvert.isEnabled = false
         btnSend.isEnabled = false
         btnShare.isEnabled = false
+    }
+
+    // ============================================
+    // USB (copiado de tu proyecto)
+    // ============================================
+    private fun setupUSB() {
+        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        registerReceiver(permissionReceiver, IntentFilter(ACTION_USB_PERMISSION))
+        findDevice()
+    }
+
+    private fun findDevice() {
+        val devices = usbManager.deviceList
+        if (devices.isEmpty()) {
+            tvStatus.text = "Conecta la NUX por USB"
+            return
+        }
+        val device = devices.values.first()
+        tvStatus.text = "Encontrado: ${device.productName ?: "NUX"}"
+        if (usbManager.hasPermission(device)) {
+            connectToDevice(device)
+        } else {
+            requestPermission(device)
+        }
+    }
+
+    private fun requestPermission(device: UsbDevice) {
+        val pi = PendingIntent.getBroadcast(
+            this,
+            0,
+            Intent(ACTION_USB_PERMISSION),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        usbManager.requestPermission(device, pi)
+    }
+
+    private fun connectToDevice(device: UsbDevice) {
+        connection = usbManager.openDevice(device) ?: return
+        for (i in 0 until device.interfaceCount) {
+            val intf = device.getInterface(i)
+            connection?.claimInterface(intf, true)
+            for (j in 0 until intf.endpointCount) {
+                val ep = intf.getEndpoint(j)
+                if (ep.direction == UsbConstants.USB_DIR_OUT &&
+                    ep.type == UsbConstants.USB_ENDPOINT_XFER_BULK) {
+                    endpointOut = ep
+                    tvStatus.text = "✅ Conectado: ${device.productName ?: "NUX"}"
+                    return
+                }
+            }
+        }
+    }
+
+    // ============================================
+    // Enviar datos por USB (copiado de tu proyecto)
+    // ============================================
+    private fun sendDataToNUX(data: ByteArray): Boolean {
+        val conn = connection
+        val ep = endpointOut
+        if (conn != null && ep != null) {
+            val result = conn.bulkTransfer(ep, data, data.size, 2000)
+            return result == data.size
+        }
+        return false
     }
 
     // ============================================
@@ -135,9 +214,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-                else -> {
-                    // No hay acción específica
-                }
+                else -> {}
             }
         }
     }
@@ -150,23 +227,23 @@ class MainActivity : AppCompatActivity() {
 
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                android.Manifest.permission.READ_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                permissions.add(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+                permissions.add(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE)
             }
         }
 
@@ -271,49 +348,54 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // Enviar a pedalera
+    // Enviar a pedalera (USANDO TU MÉTODO USB)
     // ============================================
     private fun sendToPedal() {
         convertedData?.let { data ->
             btnSend.isEnabled = false
             tvStatus.text = "📤 Enviando a pedalera..."
 
-            if (midiDevice == null || midiOutputPort == null) {
+            if (connection == null || endpointOut == null) {
                 tvStatus.text = "❌ Pedalera no conectada"
                 btnSend.isEnabled = true
                 return
             }
 
-            try {
-                val packets = data.toList().chunked(512)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Dividir en paquetes de 512 bytes (límite USB)
+                    val packets = data.toList().chunked(512)
 
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        for ((index, chunk) in packets.withIndex()) {
-                            val chunkArray = chunk.toByteArray()
-                            midiOutputPort?.send(chunkArray, 0, chunkArray.size)
+                    for ((index, chunk) in packets.withIndex()) {
+                        val chunkArray = chunk.toByteArray()
+                        val sent = sendDataToNUX(chunkArray)
 
-                            Thread.sleep(50)
-
+                        if (!sent) {
                             withContext(Dispatchers.Main) {
-                                tvStatus.text = "📤 Enviando... ${index + 1}/${packets.size}"
+                                tvStatus.text = "❌ Error al enviar paquete ${index + 1}"
+                                btnSend.isEnabled = true
                             }
+                            return@launch
                         }
 
+                        // Pequeña pausa entre paquetes
+                        Thread.sleep(50)
+
                         withContext(Dispatchers.Main) {
-                            tvStatus.text = "✅ Envío completado! (${data.size} bytes)"
-                            btnSend.isEnabled = true
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            tvStatus.text = "❌ Error al enviar: ${e.message}"
-                            btnSend.isEnabled = true
+                            tvStatus.text = "📤 Enviando... ${index + 1}/${packets.size}"
                         }
                     }
+
+                    withContext(Dispatchers.Main) {
+                        tvStatus.text = "✅ Envío completado! (${data.size} bytes)"
+                        btnSend.isEnabled = true
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        tvStatus.text = "❌ Error al enviar: ${e.message}"
+                        btnSend.isEnabled = true
+                    }
                 }
-            } catch (e: Exception) {
-                tvStatus.text = "❌ Error al enviar: ${e.message}"
-                btnSend.isEnabled = true
             }
         } ?: run {
             Toast.makeText(this, "Convierte un archivo primero", Toast.LENGTH_SHORT).show()
@@ -332,59 +414,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // MIDI
+    // Ciclo de vida
     // ============================================
-    private fun setupMIDI() {
-        midiManager = getSystemService(MIDI_SERVICE) as MidiManager
-
-        midiManager.registerDeviceCallback(object : MidiManager.DeviceCallback() {
-            override fun onDeviceAdded(deviceInfo: MidiDeviceInfo?) {
-                deviceInfo?.let { connectDevice(it) }
-            }
-
-            override fun onDeviceRemoved(deviceInfo: MidiDeviceInfo?) {
-                closeMIDI()
-                runOnUiThread {
-                    tvStatus.text = "⚠️ Pedalera desconectada"
-                }
-            }
-        }, null)
-
-        val devices = midiManager.devices
-        for (device in devices) {
-            connectDevice(device)
-        }
-    }
-
-    private fun connectDevice(deviceInfo: MidiDeviceInfo) {
-        try {
-            midiManager.openDevice(deviceInfo, { device ->
-                midiDevice = device
-                val outputPorts = deviceInfo.outputPortCount
-                if (outputPorts > 0) {
-                    midiOutputPort = device.openOutputPort(0)
-                    runOnUiThread {
-                        val productName = deviceInfo.properties.get(MidiDeviceInfo.PROPERTY_PRODUCT)
-                        tvStatus.text = "✅ Pedalera conectada: ${productName ?: "NUX"}"
-                    }
-                }
-            }, null)
-        } catch (e: Exception) {
-            runOnUiThread {
-                tvStatus.text = "❌ Error al conectar: ${e.message}"
-            }
-        }
-    }
-
-    private fun closeMIDI() {
-        midiOutputPort?.close()
-        midiOutputPort = null
-        midiDevice?.close()
-        midiDevice = null
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        closeMIDI()
+        try {
+            unregisterReceiver(permissionReceiver)
+        } catch (e: Exception) {
+            // Ya estaba desregistrado
+        }
+        connection?.close()
     }
 }
