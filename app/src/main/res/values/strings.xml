@@ -34,10 +34,10 @@
     <string name="status_error">❌ Error: %s</string>
 
     <!-- ============================================ -->
-    <!-- Envío USB -->
+    <!-- Envío USB (CORREGIDO con formatted="false") -->
     <!-- ============================================ -->
     <string name="status_sending">📤 Enviando a pedalera...</string>
-    <string name="status_sending_progress">📤 Enviando... %d/%d</string>
+    <string name="status_sending_progress" formatted="false">📤 Enviando... %d/%d</string>
     <string name="status_sent">✅ Envío completado! (%d bytes)</string>
     <string name="status_send_error">❌ Error al enviar: %s</string>
     <string name="status_send_no_device">❌ Pedalera no conectada</string>
