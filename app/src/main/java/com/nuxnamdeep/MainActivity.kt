@@ -1,5 +1,6 @@
 package com.nuxnamdeep
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -29,7 +30,7 @@ import java.io.File
 class MainActivity : AppCompatActivity() {
 
     // ============================================
-    // USB (copiado de tu proyecto)
+    // USB
     // ============================================
     private lateinit var usbManager: UsbManager
     private var connection: android.hardware.usb.UsbDeviceConnection? = null
@@ -106,67 +107,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // USB (copiado de tu proyecto)
+    // SELECCIONAR ARCHIVO (CORREGIDO)
     // ============================================
-    private fun setupUSB() {
-        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
-        registerReceiver(permissionReceiver, IntentFilter(ACTION_USB_PERMISSION))
-        findDevice()
-    }
-
-    private fun findDevice() {
-        val devices = usbManager.deviceList
-        if (devices.isEmpty()) {
-            tvStatus.text = "Conecta la NUX por USB"
-            return
+    private fun selectFile() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "*/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+            // Forzar a mostrar TODOS los archivos
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("*/*"))
         }
-        val device = devices.values.first()
-        tvStatus.text = "Encontrado: ${device.productName ?: "NUX"}"
-        if (usbManager.hasPermission(device)) {
-            connectToDevice(device)
-        } else {
-            requestPermission(device)
-        }
+        startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
     }
 
-    private fun requestPermission(device: UsbDevice) {
-        val pi = PendingIntent.getBroadcast(
-            this,
-            0,
-            Intent(ACTION_USB_PERMISSION),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        usbManager.requestPermission(device, pi)
-    }
-
-    private fun connectToDevice(device: UsbDevice) {
-        connection = usbManager.openDevice(device) ?: return
-        for (i in 0 until device.interfaceCount) {
-            val intf = device.getInterface(i)
-            connection?.claimInterface(intf, true)
-            for (j in 0 until intf.endpointCount) {
-                val ep = intf.getEndpoint(j)
-                if (ep.direction == UsbConstants.USB_DIR_OUT &&
-                    ep.type == UsbConstants.USB_ENDPOINT_XFER_BULK) {
-                    endpointOut = ep
-                    tvStatus.text = "✅ Conectado: ${device.productName ?: "NUX"}"
-                    return
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == RESULT_OK) {
+            data?.data?.let { uri ->
+                try {
+                    // Obtener el nombre del archivo
+                    val fileName = uri.lastPathSegment ?: "archivo"
+                    
+                    // Leer el contenido
+                    val inputStream = contentResolver.openInputStream(uri)
+                    val file = File(cacheDir, "selected_${System.currentTimeMillis()}.nam")
+                    inputStream?.use { input ->
+                        file.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    selectedFile = file
+                    tvFileName.text = "📄 $fileName"
+                    btnConvert.isEnabled = true
+                    tvStatus.text = "Archivo seleccionado ✅"
+                } catch (e: Exception) {
+                    tvStatus.text = "❌ Error al leer archivo: ${e.message}"
                 }
             }
         }
-    }
-
-    // ============================================
-    // Enviar datos por USB (copiado de tu proyecto)
-    // ============================================
-    private fun sendDataToNUX(data: ByteArray): Boolean {
-        val conn = connection
-        val ep = endpointOut
-        if (conn != null && ep != null) {
-            val result = conn.bulkTransfer(ep, data, data.size, 2000)
-            return result == data.size
-        }
-        return false
     }
 
     // ============================================
@@ -227,23 +204,23 @@ class MainActivity : AppCompatActivity() {
 
         if (ContextCompat.checkSelfPermission(
                 this,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         if (ContextCompat.checkSelfPermission(
                 this,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                permissions.add(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+                permissions.add(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
             }
         }
 
@@ -271,41 +248,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // Seleccionar archivo
-    // ============================================
-    private fun selectFile() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "text/plain"))
-        }
-        startActivityForResult(intent, FILE_PICK_REQUEST_CODE)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == FILE_PICK_REQUEST_CODE && resultCode == RESULT_OK) {
-            data?.data?.let { uri ->
-                try {
-                    val inputStream = contentResolver.openInputStream(uri)
-                    val file = File(cacheDir, "selected_${System.currentTimeMillis()}.nam")
-                    inputStream?.use { input ->
-                        file.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    selectedFile = file
-                    tvFileName.text = "📄 ${uri.lastPathSegment ?: "archivo"}"
-                    btnConvert.isEnabled = true
-                    tvStatus.text = "Archivo seleccionado ✅"
-                } catch (e: Exception) {
-                    tvStatus.text = "❌ Error al leer archivo: ${e.message}"
-                }
-            }
-        }
-    }
-
-    // ============================================
     // Convertir archivo
     // ============================================
     private fun convertFile() {
@@ -325,7 +267,15 @@ class MainActivity : AppCompatActivity() {
                         downloadsDir,
                         "nam_slot1_${name.lowercase().replace(" ", "_")}_FULL.txt"
                     )
-                    outputFile.writeBytes(convertedData!!)
+                    
+                    // ✅ Guardar en formato HEXADECIMAL para legibilidad
+                    val hexString = convertedData!!.joinToString(" ") { "%02X".format(it) }
+                    outputFile.writeText(hexString)
+                    
+                    // También guardar el binario para envío USB
+                    val binFile = File(cacheDir, "temp_slot.bin")
+                    binFile.writeBytes(convertedData!!)
+                    
                     convertedFile = outputFile
 
                     withContext(Dispatchers.Main) {
@@ -348,7 +298,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // Enviar a pedalera (USANDO TU MÉTODO USB)
+    // Enviar a pedalera
     // ============================================
     private fun sendToPedal() {
         convertedData?.let { data ->
@@ -363,7 +313,6 @@ class MainActivity : AppCompatActivity() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    // Dividir en paquetes de 512 bytes (límite USB)
                     val packets = data.toList().chunked(512)
 
                     for ((index, chunk) in packets.withIndex()) {
@@ -378,7 +327,6 @@ class MainActivity : AppCompatActivity() {
                             return@launch
                         }
 
-                        // Pequeña pausa entre paquetes
                         Thread.sleep(50)
 
                         withContext(Dispatchers.Main) {
@@ -414,8 +362,66 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============================================
-    // Ciclo de vida
+    // USB
     // ============================================
+    private fun setupUSB() {
+        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        registerReceiver(permissionReceiver, IntentFilter(ACTION_USB_PERMISSION))
+        findDevice()
+    }
+
+    private fun findDevice() {
+        val devices = usbManager.deviceList
+        if (devices.isEmpty()) {
+            tvStatus.text = "Conecta la NUX por USB"
+            return
+        }
+        val device = devices.values.first()
+        tvStatus.text = "Encontrado: ${device.productName ?: "NUX"}"
+        if (usbManager.hasPermission(device)) {
+            connectToDevice(device)
+        } else {
+            requestPermission(device)
+        }
+    }
+
+    private fun requestPermission(device: UsbDevice) {
+        val pi = PendingIntent.getBroadcast(
+            this,
+            0,
+            Intent(ACTION_USB_PERMISSION),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        usbManager.requestPermission(device, pi)
+    }
+
+    private fun connectToDevice(device: UsbDevice) {
+        connection = usbManager.openDevice(device) ?: return
+        for (i in 0 until device.interfaceCount) {
+            val intf = device.getInterface(i)
+            connection?.claimInterface(intf, true)
+            for (j in 0 until intf.endpointCount) {
+                val ep = intf.getEndpoint(j)
+                if (ep.direction == UsbConstants.USB_DIR_OUT &&
+                    ep.type == UsbConstants.USB_ENDPOINT_XFER_BULK) {
+                    endpointOut = ep
+                    tvStatus.text = "✅ Conectado: ${device.productName ?: "NUX"}"
+                    return
+                }
+            }
+        }
+    }
+
+    private fun sendDataToNUX(data: ByteArray): Boolean {
+        val conn = connection
+        val ep = endpointOut
+        if (conn != null && ep != null) {
+            val result = conn.bulkTransfer(ep, data, data.size, 2000)
+            return result == data.size
+        }
+        return false
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {
