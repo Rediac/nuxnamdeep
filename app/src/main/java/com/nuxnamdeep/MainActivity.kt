@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.midi.MidiDevice
+import android.media.midi.MidiDeviceInfo
 import android.media.midi.MidiManager
 import android.media.midi.MidiOutputPort
 import android.os.Build
@@ -15,9 +16,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.gson.Gson
 import com.nuxnamdeep.converter.NAM2NUXConverter
-import com.nuxnamdeep.models.NAMModel
 import com.nuxnamdeep.services.FileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,8 +66,6 @@ class MainActivity : AppCompatActivity() {
         setupViews()
         setupMIDI()
         checkPermissions()
-
-        // Manejar archivo recibido desde otra app
         handleIncomingFile()
     }
 
@@ -88,7 +85,6 @@ class MainActivity : AppCompatActivity() {
         btnSend.setOnClickListener { sendToPedal() }
         btnShare.setOnClickListener { shareFile() }
 
-        // Deshabilitar botones inicialmente
         btnConvert.isEnabled = false
         btnSend.isEnabled = false
         btnShare.isEnabled = false
@@ -139,6 +135,9 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+                else -> {
+                    // No hay acción específica
+                }
             }
         }
     }
@@ -167,7 +166,6 @@ class MainActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                // Para Android 11+, pedimos MANAGE_EXTERNAL_STORAGE
                 permissions.add(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
             }
         }
@@ -188,7 +186,6 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            // Verificar si todos los permisos fueron concedidos
             val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             if (!allGranted) {
                 tvStatus.text = "⚠️ Algunos permisos no fueron concedidos"
@@ -244,7 +241,6 @@ class MainActivity : AppCompatActivity() {
                     val name = file.nameWithoutExtension
                     convertedData = NAM2NUXConverter.convert(file, name)
 
-                    // Guardar en Downloads
                     val downloadsDir = Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOWNLOADS
                     )
@@ -289,7 +285,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             try {
-                // Dividir en paquetes de 512 bytes (límite USB MIDI)
                 val packets = data.toList().chunked(512)
 
                 CoroutineScope(Dispatchers.IO).launch {
@@ -298,7 +293,6 @@ class MainActivity : AppCompatActivity() {
                             val chunkArray = chunk.toByteArray()
                             midiOutputPort?.send(chunkArray, 0, chunkArray.size)
 
-                            // Pequeña pausa entre paquetes
                             Thread.sleep(50)
 
                             withContext(Dispatchers.Main) {
@@ -356,7 +350,6 @@ class MainActivity : AppCompatActivity() {
             }
         }, null)
 
-        // Buscar dispositivos ya conectados
         val devices = midiManager.devices
         for (device in devices) {
             connectDevice(device)
@@ -390,9 +383,6 @@ class MainActivity : AppCompatActivity() {
         midiDevice = null
     }
 
-    // ============================================
-    // Ciclo de vida
-    // ============================================
     override fun onDestroy() {
         super.onDestroy()
         closeMIDI()
