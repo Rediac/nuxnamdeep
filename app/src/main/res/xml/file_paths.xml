@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- ============================================ -->
+    <!-- Almacenamiento externo (Downloads, DCIM, etc.) -->
+    <!-- ============================================ -->
+    <external-path
+        name="external_files"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento externo específico de la app -->
+    <!-- ============================================ -->
+    <external-files-path
+        name="external_files"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento externo de caché -->
+    <!-- ============================================ -->
+    <external-cache-path
+        name="external_cache"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento interno de caché -->
+    <!-- ============================================ -->
+    <cache-path
+        name="cache"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento interno de la app -->
+    <!-- ============================================ -->
+    <files-path
+        name="files"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento externo de medios (fotos, videos) -->
+    <!-- ============================================ -->
+    <external-media-path
+        name="external_media"
+        path="." />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento externo de descargas (Android 10+) -->
+    <!-- ============================================ -->
+    <external-path
+        name="downloads"
+        path="Download/" />
+
+    <external-path
+        name="downloads_sub"
+        path="Downloads/" />
+
+    <!-- ============================================ -->
+    <!-- Almacenamiento raíz (para compatibilidad) -->
+    <!-- ============================================ -->
+    <root-path
+        name="root"
+        path="." />
+</paths>
