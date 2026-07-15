@@ -1,0 +1,158 @@
+# ============================================
+# Android / Gradle
+# ============================================
+
+# Gradle
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+local.properties
+gradle-app.setting
+
+# ============================================
+# Archivos de Android Studio / IDE
+# ============================================
+
+# Android Studio
+*.iml
+.idea/
+.idea_modules/
+.idea/libraries
+.idea/caches
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/shelf
+.idea/vcs.xml
+.idea/runConfigurations.xml
+.idea/sonarlint/
+.idea/misc.xml
+.idea/compiler.xml
+.idea/codeStyles/
+.idea/jarRepositories.xml
+.idea/modules.xml
+.idea/packageSearchResults.xml
+.idea/workspace.xml
+
+# Android Studio 4.0+
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# ============================================
+# Archivos de build / compilación
+# ============================================
+
+# Build outputs
+build/
+app/build/
+app/release/
+app/debug/
+
+# Archivos generados
+*.class
+*.dex
+*.ap_
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ============================================
+# Archivos de sistema
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# Archivos de usuario / configuración local
+# ============================================
+
+# Credenciales y claves
+keystore.properties
+*.keystore
+*.jks
+google-services.json
+google-services-dev.json
+firebase-debug.log
+firebase-crashlytics.properties
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# ============================================
+# Archivos de caché y temporales
+# ============================================
+
+# Caches
+.cache/
+.cocoapods/
+.venv/
+venv/
+ENV/
+env/
+node_modules/
+
+# Logs
+*.log
+hs_err_pid*
+replay_pid*
+
+# ============================================
+# Archivos de backup de editor
+# ============================================
+
+# Vim
+*.swp
+*.swo
+*~
+*.un~
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+.sublime/
+
+# ============================================
+# Archivos específicos del proyecto
+# ============================================
+
+# Archivos NAM originales (opcional - si quieres ignorarlos)
+# *.nam
+# *.json
+
+# Archivos convertidos (opcional)
+# *.txt
+
+# Archivos de prueba
+/test/
+/tmp/
