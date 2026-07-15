@@ -1,0 +1,75 @@
+<resources>
+    <!-- ============================================ -->
+    <!-- Nombre de la App -->
+    <!-- ============================================ -->
+    <string name="app_name">NAM2NUX</string>
+
+    <!-- ============================================ -->
+    <!-- Botones -->
+    <!-- ============================================ -->
+    <string name="select_file">📂 Seleccionar archivo NAM</string>
+    <string name="convert">🔄 Convertir a NUX</string>
+    <string name="send">📤 Enviar a pedalera</string>
+    <string name="share">📤 Compartir archivo</string>
+
+    <!-- ============================================ -->
+    <!-- Estados -->
+    <!-- ============================================ -->
+    <string name="status_ready">Esperando acción...</string>
+    <string name="status_ready_connected">✅ Pedalera conectada</string>
+    <string name="status_ready_disconnected">⚠️ Pedalera desconectada</string>
+    <string name="status_connected">✅ Pedalera conectada: %s</string>
+    <string name="status_disconnected">⚠️ Pedalera desconectada</string>
+    <string name="status_file_selected">✅ Archivo seleccionado: %s</string>
+    <string name="status_no_file">📄 Ningún archivo seleccionado</string>
+    <string name="status_file_received">📄 Archivo recibido: %s</string>
+
+    <!-- ============================================ -->
+    <!-- Progreso -->
+    <!-- ============================================ -->
+    <string name="status_converting">🔄 Convirtiendo...</string>
+    <string name="status_converting_progress">🔄 Convirtiendo... %d%%</string>
+    <string name="status_success">✅ Conversión exitosa! (%d bytes)</string>
+    <string name="status_success_file">✅ Archivo guardado: %s</string>
+    <string name="status_error">❌ Error: %s</string>
+
+    <!-- ============================================ -->
+    <!-- Envío USB -->
+    <!-- ============================================ -->
+    <string name="status_sending">📤 Enviando a pedalera...</string>
+    <string name="status_sending_progress">📤 Enviando... %d/%d</string>
+    <string name="status_sent">✅ Envío completado! (%d bytes)</string>
+    <string name="status_send_error">❌ Error al enviar: %s</string>
+    <string name="status_send_no_device">❌ Pedalera no conectada</string>
+
+    <!-- ============================================ -->
+    <!-- Errores -->
+    <!-- ============================================ -->
+    <string name="error_no_file">Selecciona un archivo NAM primero</string>
+    <string name="error_no_converted">Convierte un archivo primero</string>
+    <string name="error_no_share">No hay archivo para compartir</string>
+    <string name="error_reading_file">❌ Error al leer archivo: %s</string>
+    <string name="error_permissions">⚠️ Algunos permisos no fueron concedidos</string>
+
+    <!-- ============================================ -->
+    <!-- Instrucciones -->
+    <!-- ============================================ -->
+    <string name="instructions_title">📖 Instrucciones</string>
+    <string name="instructions_text">1. Conecta tu NUX MG-300 por USB\n2. Selecciona un archivo .nam\n3. Convierte a formato NUX\n4. Envía a la pedalera o comparte el archivo</string>
+
+    <!-- ============================================ -->
+    <!-- Diálogos -->
+    <!-- ============================================ -->
+    <string name="dialog_title_info">Información</string>
+    <string name="dialog_title_error">Error</string>
+    <string name="dialog_button_ok">OK</string>
+    <string name="dialog_button_cancel">Cancelar</string>
+
+    <!-- ============================================ -->
+    <!-- Toast -->
+    <!-- ============================================ -->
+    <string name="toast_file_selected">Archivo seleccionado</string>
+    <string name="toast_conversion_done">Conversión completada</string>
+    <string name="toast_send_done">Envío completado</string>
+    <string name="toast_share_started">Compartiendo archivo...</string>
+</resources>
